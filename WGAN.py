@@ -20,7 +20,7 @@ from misc.utils import combine_images
 
 def GeneratorModel():
 
-    input = Input(shape = (100, ))
+    inputs = Input(shape = (100, ))
     x = Dense(1024)(input)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
@@ -40,7 +40,7 @@ def GeneratorModel():
     x = Conv2D(1*3, (5, 5), padding = 'same')(x)
     images = Activation('tanh')(x)
 
-    model = Model(input = inputs, outputs = images)
+    model = Model(inputs = inputs, outputs = images)
 
     return model
 
