@@ -21,7 +21,7 @@ from misc.utils import combine_images
 def GeneratorModel():
 
     inputs = Input(shape = (100, ))
-    x = Dense(1024)(input)
+    x = Dense(1024)(inputs)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = Dense(128*8*8*3)(x)
@@ -85,7 +85,7 @@ def train(x_train, loadmodel = False):
     x_train = (x_train.astype(np.float32) - 127.5)/127.5
 
     c_model = CriticModel()
-    c_opt = RMSprop(lr = 1e-5)
+    c_opt = RMSprop(lr = 5e-5)
     c_model.compile(loss = wasserstein, optimizer = c_opt)
     
     c_model.trainable = False
@@ -114,7 +114,7 @@ def train(x_train, loadmodel = False):
             for l in c_model.layers:
                 weights = l.get_weights()
                 weigths = [np.clip(w, -0.01, 0.01) for w in weights]
-                l.set_weigths(weights)
+                l.set_weights(weights)
 
             # true image
             image_batch = x_train[index*BatchSize:(index+1)*BatchSize]
@@ -126,14 +126,15 @@ def train(x_train, loadmodel = False):
 
             # feed true/fake images to critic
             x = np.concatenate((image_batch, generated_images))
-            y = [1]*BatchSize + [-1]*BatchSize
-            c_loss = c_model.train_on_batch(x, -y)
+            y = np.array([1]*BatchSize + [-1]*BatchSize)
+            c_loss = c_model.train_on_batch(x, -1*y)
 
             # train generator
 
             noise = np.array([np.random.uniform(-1, 1, 100)\
                               for _ in range(BatchSize)])
-            g_loss = wgan.train_on_batch(noise, -[1]*BatchSize)
+            y = np.array([1]*BatchSize)
+            g_loss = wgan.train_on_batch(noise, -1*y)
 
             if index == num_batches-1:
                 image = combine_images(generated_images)

@@ -118,7 +118,7 @@ def train(x_train, loadmodel = False):
             for l in c_model.layers:
                 weights = l.get_weights()
                 weigths = [np.clip(w, -0.01, 0.01) for w in weights]
-                l.set_weigths(weights)
+                l.set_weights(weights)
 
             # true image
             image_batch = x_train[index*BatchSize:(index+1)*BatchSize]
@@ -130,14 +130,15 @@ def train(x_train, loadmodel = False):
 
             # feed true/fake images to critic
             x = np.concatenate((image_batch, generated_images))
-            y = [1]*BatchSize + [-1]*BatchSize
-            c_loss = c_model.train_on_batch(x, -y)
+            y = np.array([1]*BatchSize + [-1]*BatchSize)
+            c_loss = c_model.train_on_batch(x, -1*y)
 
             # train generator
 
             noise = np.array([np.random.uniform(-1, 1, 100)\
                               for _ in range(BatchSize)])
-            g_loss = wgan.train_on_batch(noise, -[1]*BatchSize)
+            y = np.array([1]*BatchSize)
+            g_loss = wgan.train_on_batch(noise, -1*y)
 
             if index == num_batches-1:
                 image = combine_images(generated_images)

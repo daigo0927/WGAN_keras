@@ -38,7 +38,7 @@ def combine_images(generated_images):
     for index, image in enumerate(generated_images):
         i = int(index/cols)
         j = index % cols
-        combine_image[width*i:width*(i+1), height*j*height*(j+1), :]\
+        combined_image[width*i:width*(i+1), height*j:height*(j+1), :]\
             = image
 
-    return combine_image
+    return combined_image
