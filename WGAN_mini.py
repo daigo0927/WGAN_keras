@@ -24,17 +24,17 @@ def GeneratorModel():
     x = Dense(1024)(input)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Dense(128*7*7*3)(x)
+    x = Dense(128*8*8*3)(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Reshape((7, 7, 128*3))(x)
+    x = Reshape((8, 8, 128*3))(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(64*3, (5, 5), padding = 'same')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(1*3, (5, 5), padding = 'same')(x)
-    images = Activation('tanh')(x)
+    images = Activation('tanh')(x) # output 32*32*3 images
 
     model = Model(inputs = inputs, outputs = images)
 
@@ -42,7 +42,7 @@ def GeneratorModel():
 
 def CriticModel():
 
-    images = Input(shape = (28, 28, 3))
+    images = Input(shape = (32, 32, 3))
     x = Conv2D(64, (5, 5), strides = (2, 2), padding = 'same')(images)
     x = LeakyReLU(0.2)(x)
     x = Conv2D(128, (5, 5), strides = (2, 2), padding = 'same')(x)
