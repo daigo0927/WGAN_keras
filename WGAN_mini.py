@@ -96,9 +96,9 @@ def train(x_train, loadmodel = False):
 
     if loadmodel:
         weight_path = str(input('input weight dir : '))
-        d_model.load_weights(filepath = weight_path+'/wgan_c.h5',
+        c_model.load_weights(filepath = weight_path+'/wgan_c.h5',
                              by_name = False)
-        g_model.load_weights(file_path = weight_path+'wgan_d.h5',
+        g_model.load_weights(filepath = weight_path+'/wgan_g.h5',
                              by_name = False)
 
     num_batches = int(x_train.shape[0]/BatchSize)
@@ -109,7 +109,7 @@ def train(x_train, loadmodel = False):
         for index in range(num_batches):
 
             # train critic(discriminator)
-            c_train_num = 5
+            c_train_num = 1
             for i in range(c_train_num):
 
                 # weight clipping
