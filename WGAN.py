@@ -21,7 +21,7 @@ from misc.utils import combine_images
 def GeneratorModel():
 
     inputs = Input(shape = (100, ))
-    x = Dense(1024)(input)
+    x = Dense(1024)(inputs)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = Dense(128*8*8*3)(x)
@@ -89,7 +89,7 @@ def train(x_train, loadmodel = False):
     x_train = (x_train.astype(np.float32) - 127.5)/127.5
 
     c_model = CriticModel()
-    c_opt = RMSprop(lr = 1e-5)
+    c_opt = RMSprop(lr = 2e-5)
     c_model.compile(loss = wasserstein, optimizer = c_opt)
     
     c_model.trainable = False
@@ -113,28 +113,32 @@ def train(x_train, loadmodel = False):
         for index in range(num_batches):
 
             # train critic(discriminator)
+            c_train_num = 5
+            for i in range(c_train_num):
 
-            # weight clipping
-            for l in c_model.layers:
-                weights = l.get_weights()
-                weigths = [np.clip(w, -0.01, 0.01) for w in weights]
-                l.set_weights(weights)
+                # weight clipping
+                for l in c_model.layers:
+                    weights = l.get_weights()
+                    weigths = [np.clip(w, -0.01, 0.01) for w in weights]
+                    l.set_weights(weights)
 
-            # true image
-            image_batch = x_train[index*BatchSize:(index+1)*BatchSize]
+                # true image
+                idx = np.random.choice(x_train.shape[0],
+                                       BatchSize,
+                                       replace = False)
+                image_batch = x_train[idx]
 
-            # generate fake image
-            noise = np.array([np.random.uniform(-1, 1, 100)\
-                              for _ in range(BatchSize)])
-            generated_images = g_model.predict(noise, verbose = 0)
+                # generate fake image
+                noise = np.array([np.random.uniform(-1, 1, 100)\
+                                  for _ in range(BatchSize)])
+                generated_images = g_model.predict(noise, verbose = 0)
 
-            # feed true/fake images to critic
-            x = np.concatenate((image_batch, generated_images))
-            y = np.array([1]*BatchSize + [-1]*BatchSize)
-            c_loss = c_model.train_on_batch(x, -1*y)
+                # feed true/fake images to critic
+                x = np.concatenate((image_batch, generated_images))
+                y = np.array([1]*BatchSize + [-1]*BatchSize)
+                c_loss = c_model.train_on_batch(x, -1*y)
 
             # train generator
-
             noise = np.array([np.random.uniform(-1, 1, 100)\
                               for _ in range(BatchSize)])
             y = np.array([1]*BatchSize)
