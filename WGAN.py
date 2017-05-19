@@ -18,16 +18,18 @@ from keras.optimizers import Adam, RMSprop
 
 from misc.utils import combine_images
 
-def GeneratorModel():
+def GeneratorModel(image_size = (64, 64)):
+
+    L, = image_size
 
     inputs = Input(shape = (100, ))
     x = Dense(1024)(inputs)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Dense(128*8*8*3)(x)
+    x = Dense(128*L/8*L8*3)(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Reshape((8, 8, 128*3))(x)
+    x = Reshape((L/8, L/8, 128*3))(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(64*3, (5, 5), padding = 'same')(x)
     x = BatchNormalization()(x)
@@ -44,9 +46,11 @@ def GeneratorModel():
 
     return model
 
-def CriticModel():
+def CriticModel(image_size = (64, 64)):
 
-    images = Input(shape = (64, 64, 3))
+    L, _ = image_size
+
+    images = Input(shape = (L, L, 3))
     x = Conv2D(64, (5, 5), strides = (2, 2), padding = 'same')(images)
     x = LeakyReLU(0.2)(x)
     x = Conv2D(128, (5, 5), strides = (2, 2), padding = 'same')(x)
@@ -69,11 +73,8 @@ def CriticModel():
 # -> minimize -f(g(z))/N
 def wasserstein(y_true, y_pred): # y = 1:true, -1:fake
 
-    return K.mean(y_true * y_pred)
+    return -K.mean(y_true * y_pred)
     
-
-BatchSize = 40
-NumEpoch = 300
 
 ResultPath = {}
 ResultPath['image'] = 'image/'
@@ -83,19 +84,25 @@ for path in ResultPath:
         os.mkdir(path)
 
         
-def train(x_train, loadmodel = False):
+def train(x_train, loadmodel = False,
+          lr_c = 5e-5, lr_g = 1e-5,
+          BatchSize = 40, NumEpoch = 300):
+
+    print('train data shape{}'.format(x_train.shape))
+    image_num, image_size, _, _ = x_train.shape
+    image_size = (image_size, image_size)
     
     # x_train.shape(samples, 64, 64, 3), unnormalized
     x_train = (x_train.astype(np.float32) - 127.5)/127.5
 
     c_model = CriticModel()
-    c_opt = RMSprop(lr = 2e-5)
+    c_opt = RMSprop(lr = lr_c)
     c_model.compile(loss = wasserstein, optimizer = c_opt)
     
     c_model.trainable = False
     g_model = GeneratorModel()
     wgan = Sequential([g_model, c_model])
-    g_opt = RMSprop(lr = 1e-5)
+    g_opt = RMSprop(lr = lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
 
     if loadmodel:
@@ -113,7 +120,7 @@ def train(x_train, loadmodel = False):
         for index in range(num_batches):
 
             # train critic(discriminator)
-            c_train_num = 5
+            c_train_num = 1
             for i in range(c_train_num):
 
                 # weight clipping
@@ -136,13 +143,13 @@ def train(x_train, loadmodel = False):
                 # feed true/fake images to critic
                 x = np.concatenate((image_batch, generated_images))
                 y = np.array([1]*BatchSize + [-1]*BatchSize)
-                c_loss = c_model.train_on_batch(x, -1*y)
+                c_loss = c_model.train_on_batch(x, y)
 
             # train generator
             noise = np.array([np.random.uniform(-1, 1, 100)\
                               for _ in range(BatchSize)])
             y = np.array([1]*BatchSize)
-            g_loss = wgan.train_on_batch(noise, -1*y)
+            g_loss = wgan.train_on_batch(noise, y)
 
             if index == num_batches-1:
                 image = combine_images(generated_images)
