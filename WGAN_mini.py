@@ -20,16 +20,16 @@ from misc.utils import combine_images
 
 def GeneratorModel(image_size = (32, 32)):
 
-    L, _ = image_size
+    L = int(image_size[0])
 
     inputs = Input(shape = (100, ))
     x = Dense(1024)(inputs)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Dense(128*L/4*L/4*3)(x)
+    x = Dense(128*int(L/4)*int(L/4)*3)(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = Reshape((L/4, L/4, 128*3))(x)
+    x = Reshape((int(L/4), int(L/4), 128*3))(x)
     x = UpSampling2D((2, 2))(x)
     x = Conv2D(64*3, (5, 5), padding = 'same')(x)
     x = BatchNormalization()(x)
@@ -40,11 +40,13 @@ def GeneratorModel(image_size = (32, 32)):
 
     model = Model(inputs = inputs, outputs = images)
 
+    model.summary()
+
     return model
 
 def CriticModel(image_size = (32, 32)):
 
-    L, _ = image_size
+    L = int(image_size[0])
 
     images = Input(shape = (L, L, 3))
     x = Conv2D(64, (5, 5), strides = (2, 2), padding = 'same')(images)
@@ -59,6 +61,8 @@ def CriticModel(image_size = (32, 32)):
     outputs = Activation('tanh')(x)
 
     model = Model(inputs = images, outputs = outputs)
+
+    model.summary()
 
     return model
 
