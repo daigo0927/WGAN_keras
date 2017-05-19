@@ -130,22 +130,23 @@ def train(x_train, loadmodel = False,
                     weigths = [np.clip(w, -0.01, 0.01) for w in weights]
                     l.set_weights(weights)
 
-                # true image
+                # feed True/Fake image separately
+                # train by true image
                 idx = np.random.choice(image_num,
                                        BatchSize,
                                        replace = False)
                 image_batch = x_train[idx]
-                # image_batch = x_train[index*BatchSize:(index+1)*BatchSize]
+                y = [1]*BatchSize
+                c_loss_true = c_model.train_on_batch(image_batch, y)
                 
-                # generate fake image
+                # train by generate fake image
                 noise = np.array([np.random.uniform(-1, 1, 100)\
                                   for _ in range(BatchSize)])
                 generated_images = g_model.predict(noise, verbose = 0)
+                y = [-1]*BatchSize
+                c_loss_fake = c_model.train_on_batch(generated_images, y)
 
-                # feed true/fake images to critic
-                x = np.concatenate((image_batch, generated_images))
-                y = np.array([1]*BatchSize + [-1]*BatchSize)
-                c_loss = c_model.train_on_batch(x, y)
+                c_loss = (c_loss_true+c_loss_fake)/2
 
             # train generator
             noise = np.array([np.random.uniform(-1, 1, 100)\
