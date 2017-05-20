@@ -55,6 +55,7 @@ def CriticModel(image_size = (64, 64)):
     images = Input(shape = (L, L, 3))
     x = Conv2D(64, (5, 5), strides = (2, 2), padding = 'same')(images)
     x = LeakyReLU(0.2)(x)
+    x = BatchNormalization()(x)
     x = Conv2D(128, (5, 5), strides = (2, 2), padding = 'same')(x)
     x = LeakyReLU(0.2)(x)
     x = Flatten()(x)
