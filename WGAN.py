@@ -89,7 +89,7 @@ for path in ResultPath:
         os.mkdir(path)
 
         
-def train(x_train, loadmodel = False,
+def train(x_train, loadweight = False,
           lr_c = 5e-5, lr_g = 1e-5,
           BatchSize = 40, NumEpoch = 300):
 
@@ -110,11 +110,10 @@ def train(x_train, loadmodel = False,
     g_opt = RMSprop(lr = lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
 
-    if loadmodel:
-        weight_path = str(input('input weight dir : '))
-        c_model.load_weights(filepath = weight_path+'/wgan_c.h5',
+    if not loadweight == False:
+        c_model.load_weights(filepath = loadweight+'/wgan_c.h5',
                              by_name = False)
-        g_model.load_weights(filepath = weight_path+'/wgan_g.h5',
+        g_model.load_weights(filepath = loadweight+'/wgan_g.h5',
                              by_name = False)
 
     num_batches = int(x_train.shape[0]/BatchSize)
