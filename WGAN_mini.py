@@ -55,7 +55,6 @@ def CriticModel(image_size = (32, 32)):
     x = LeakyReLU(0.2)(x)
     x = Flatten()(x)
     x = Dense(256)(x)
-    x = BatchNormalization()(x)
     x = LeakyReLU(0.2)(x)
     x = Dropout(0.5)(x)
     x = Dense(1)(x)
@@ -87,7 +86,7 @@ for path in ResultPath:
 
         
 def train(x_train, loadweight = False,
-          lr_c = 5e-5, lr_g = 1e-5,
+          lr_c = 2e-5, lr_g = 1e-5,
           BatchSize = 40, NumEpoch = 300):
 
     print('train data shape{}'.format(x_train.shape))
@@ -117,6 +116,17 @@ def train(x_train, loadweight = False,
     print('Number of Batches : {}, epochs : {}'.format(num_batches, NumEpoch))
 
     for epoch in range(NumEpoch):
+
+        if epoch > 0 and epoch%50 == 0:
+            schedule = epoch%50
+
+            c_opt = Adam(lr = lr_c/(10**schedule))
+            c_model = compile(loss = wasserstein, optimizer = c_opt)
+
+            c_model.trainable = False
+            g_opt = Adam(lr = lr_g/(10**schedule))
+            wgan = Sequential([g_model, c_model])
+            wgan.compile(loss = wasserstein, optimizer = g_opt)
 
         for index in range(num_batches):
 

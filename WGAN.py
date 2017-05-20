@@ -59,7 +59,6 @@ def CriticModel(image_size = (64, 64)):
     x = LeakyReLU(0.2)(x)
     x = Flatten()(x)
     x = Dense(256)(x)
-    x = BatchNormalization()(x)
     x = LeakyReLU(0.2)(x)
     x = Dropout(0.5)(x)
     x = Dense(1)(x)
@@ -90,7 +89,7 @@ for path in ResultPath:
 
         
 def train(x_train, loadweight = False,
-          lr_c = 5e-5, lr_g = 1e-5,
+          lr_c = 2e-5, lr_g = 1e-5,
           BatchSize = 40, NumEpoch = 300):
 
     print('train data shape{}'.format(x_train.shape))
@@ -101,13 +100,13 @@ def train(x_train, loadweight = False,
     x_train = (x_train.astype(np.float32) - 127.5)/127.5
 
     c_model = CriticModel()
-    c_opt = RMSprop(lr = lr_c)
+    c_opt = Adam(lr = lr_c)
     c_model.compile(loss = wasserstein, optimizer = c_opt)
     
     c_model.trainable = False
     g_model = GeneratorModel()
     wgan = Sequential([g_model, c_model])
-    g_opt = RMSprop(lr = lr_g)
+    g_opt = Adam(lr = lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
 
     if not loadweight == False:
@@ -119,8 +118,36 @@ def train(x_train, loadweight = False,
     num_batches = int(x_train.shape[0]/BatchSize)
     print('Number of Batches : {}, epochs : {}'.format(num_batches, NumEpoch))
 
+    c_loss_record = []
+    g_loss_record = []
+
     for epoch in range(NumEpoch):
 
+        if epoch > 0 and epoch%50 == 0:
+            schedule = epoch%50
+            
+            c_opt = Adam(lr = lr_c/(10**schedule))
+            c_model.compile(loss = wasserstein, optimizer = c_opt)
+            
+            c_model.trainable = False
+            g_opt = Adam(lr = lr_g/(10**schedule))
+            wgan = Sequential([g_model, c_model])
+            wgan.compile(loss = wasserstein, optimizer = g_opt)
+
+            plt.figure()
+            plt.title('loss record')
+            plt.plot(c_loss_record, label = 'Critic')
+            plt.plot(g_loss_record, label = 'Generator')
+            plt.xlabel('iteration')
+            plt.ylabel('loss value')
+            plt.legend()
+            with open('./image/lossto{}.png'.format(epoch), 'wb') as f:
+                plt.savefig(f)
+            plt.close()
+
+        c_loss_rec = []
+        g_loss_rec = []
+            
         for index in range(num_batches):
 
             # train critic(discriminator)
@@ -165,10 +192,17 @@ def train(x_train, loadweight = False,
                 Image.fromarray(image.astype(np.uint8))\
                     .save(ResultPath['image'] + '{}.png'.format(epoch))
 
+            c_loss_rec.append(c_loss)
+            g_loss_rec.append(g_loss)
+
             print('epoch:{}, batch:{}, g_loss:{}, c_loss:{}'.format(epoch,
                                                                     index,
                                                                     g_loss,
                                                                     c_loss))
+            
+        c_loss_record.append(np.mean(c_loss_rec))
+        g_loss_record.append(np.mean(g_loss_rec))
+            
 
     g_model.save_weights(ResultPath['model']+'wgan_g.h5')
     c_model.save_weights(ResultPath['model']+'wgan_c.h5')
