@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
+import pdb
 from PIL import Image
 import h5py
 import argparse
@@ -15,7 +16,7 @@ from keras.optimizers import RMSprop
 import keras.backend as K
 
 from model import generator, discriminator
-from misc.utils import get_image
+from misc.utils import *
 
 parser = argparse.ArgumentParser()
 # optimization
@@ -89,32 +90,37 @@ def train():
     paths = []
     for ddir in args.datadir:
         paths = paths + glob.glob(ddir + '/*')
-    # print(np.random.choice(paths, 10))
-        
+    datasize = min(len(paths), args.train_size)
+    print('data size : {}'.format(datasize))
+    paths = np.random.choice(paths, datasize, replace = False)
+
+    # trainig schedule
     epochs = args.epochs
     batch_size = args.batch_size
     num_batches = int(len(paths)/batch_size)
     print('Number of batches : {}, epochs : {}'.format(num_batches, epochs))
 
+    # training
     for epoch in range(epochs):
         
         for batch in range(num_batches):
-            
+
+            # train discriminator
             disc.trainable = True
             for _ in range(args.nd):
-                d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights]
+                d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
 
-                # train by true images
                 files = np.random.choice(paths, batch_size, replace = False)
-                x_true = np.array([get_image(f, args.image_target, args.image_size)
-                                   for f in files]) # # true images
+                x_true = np.array([get_image(f, args.image_target, args.image_size)\
+                                   for f in files]) # true images
                 z = np.random.uniform(-1, 1, (batch_size, 100))
                 x_fake = gen.predict(z) # fake images
                 x = np.concatenate((x_true, x_fake))
                 y = [1]*batch_size + [-1]*batch_size
 
                 d_loss = disc.train_on_batch(x, y)
+                # pdb.set_trace()
 
             # train generator
             disc.trainable = False
@@ -130,8 +136,8 @@ def train():
                 sample = combine_images(x_fake)
                 sample = sample*127.5 + 127.5
 
-                Image.fromarray(image.astype(np.uint8))\
-                    .save(args.sampledir + '/sample{}_{}.png'.format(epoch, batch))
+                Image.fromarray(sample.astype(np.uint8))\
+                     .save(args.sampledir + '/sample{}_{}.png'.format(epoch, batch))
 
         gen.save_weights(args.weightdir + '/wgan_g.h5')
         disc.save_weights(args.weightdir + '/wgan_d.h5')
