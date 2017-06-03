@@ -46,11 +46,11 @@ def combine_images(generated_images):
 
 def get_image(filepath, image_target, image_size):
     
-    img = imread(filepath).astype(float)
+    img = imread(filepath).astype(np.float)
     h_origin, w_origin, _ = img.shape
     h_drop = int((h_origin - image_target)/2)
     w_drop = int((w_origin - image_target)/2)
     img_crop = img[h_drop:h_drop+image_target, w_drop:w_drop+image_target, :]
     img_resize = imresize(img_crop, [image_size, image_size])
 
-    return img_resize
+    return np.array(img_resize)/127.5 - 1.
