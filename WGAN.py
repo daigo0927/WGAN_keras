@@ -78,7 +78,19 @@ def CriticModel(image_size = (64, 64)):
 def wasserstein(y_true, y_pred): # y = 1:true, -1:fake
 
     return -K.mean(y_true * y_pred)
-    
+
+def lossplot(c_loss_record, g_loss_record, epoch):
+    plt.figure()
+    plt.title('loss record')
+    plt.plot(c_loss_record, label = 'Critic')
+    plt.plot(g_loss_record, label = 'Generator')
+    plt.xlabel('iteration')
+    plt.ylabel('loss value')
+    plt.legend()
+    with open('./image/lossto{}.png'.format(epoch), 'wb') as f:
+        plt.savefig(f)
+    plt.close()
+
 
 ResultPath = {}
 ResultPath['image'] = 'image/'
@@ -134,17 +146,7 @@ def train(x_train, loadweight = False,
             wgan = Sequential([g_model, c_model])
             wgan.compile(loss = wasserstein, optimizer = g_opt)
 
-            plt.figure()
-            plt.title('loss record')
-            plt.plot(c_loss_record, label = 'Critic')
-            plt.plot(g_loss_record, label = 'Generator')
-            plt.xlabel('iteration')
-            plt.ylabel('loss value')
-            plt.legend()
-            with open('./image/lossto{}.png'.format(epoch), 'wb') as f:
-                plt.savefig(f)
-            plt.close()
-
+            
         c_loss_rec = []
         g_loss_rec = []
             
