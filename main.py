@@ -15,6 +15,7 @@ from keras.optimizers import RMSprop
 import keras.backend as K
 
 from model import generator, discriminator
+from misc.utils import get_image
 
 parser = argparse.ArgumentParser()
 # optimization
@@ -106,7 +107,7 @@ def train():
 
                 # train by true images
                 files = np.random.choice(paths, batch_size, replace = False)
-                x_true = np.array([XXXXX(f, args.image_target, args.image_size)
+                x_true = np.array([get_image(f, args.image_target, args.image_size)
                                    for f in files]) # # true images
                 z = np.random.uniform(-1, 1, (batch_size, 100))
                 x_fake = gen.predict(z) # fake images
@@ -132,6 +133,8 @@ def train():
                 Image.fromarray(image.astype(np.uint8))\
                     .save(args.sampledir + '/sample{}_{}.png'.format(epoch, batch))
 
+        gen.save_weights(args.weightdir + '/wgan_g.h5')
+        disc.save_weights(args.weightdir + '/wgan_d.h5')
 
 if __name__ == '__main__':
 
