@@ -11,8 +11,9 @@ import h5py
 import argparse
 import fire
 
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.optimizers import RMSprop
+from keras.layers import Input
 import keras.backend as K
 
 from model import generator, discriminator
@@ -22,10 +23,10 @@ parser = argparse.ArgumentParser()
 # optimization
 parser.add_argument('-e', '--epochs', type=int, default=20,
                     help = 'number of epochs [20]')
-parser.add_argument('--lr_g', type = float, default = 5e-5,
-                    help = 'learning rate for generator [5e-5]')
-parser.add_argument('--lr_d', type = float, default = 5e-5,
-                    help = 'learning rate for discriminator [5e-5]')
+parser.add_argument('--lr_g', type = float, default = 1e-5,
+                    help = 'learning rate for generator [1e-5]')
+parser.add_argument('--lr_d', type = float, default = 2e-4,
+                    help = 'learning rate for discriminator [2e-4]')
 parser.add_argument('--train_size', type = int, default = np.inf,
                     help = 'size of trainind data [np.inf]')
 parser.add_argument('--batch_size', type = int, default = 64,
@@ -68,16 +69,22 @@ def wasserstein(y_true, y_pred): # y = 1:true, -1:fake
         
 def train():
 
-    # model construction
+    # discriminator construction
     disc = discriminator(image_size = args.image_size)
     d_opt = RMSprop(lr = args.lr_d)
     disc.compile(loss = wasserstein, optimizer = d_opt)
 
-    disc.trainable = False
+    # Wasserstein GAN construction
     gen = generator(image_size = args.image_size)
-    wgan = Sequential([gen, disc])
+    z_in = Input(shape = (100,))
+    x_ = gen(z_in)
+    disc.trainable = False
+    y_out = disc(x_)
+    # wgan = Sequential([gen, disc])
+    wgan = Model(inputs = z_in, outputs = y_out)
     g_opt = RMSprop(lr = args.lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
+    wgan.summary()
 
     # load weight (if needed)
     if not args.loadweight == False:
@@ -106,7 +113,6 @@ def train():
         for batch in range(num_batches):
 
             # train discriminator
-            disc.trainable = True
             for _ in range(args.nd):
                 d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
@@ -123,7 +129,6 @@ def train():
                 # pdb.set_trace()
 
             # train generator
-            disc.trainable = False
             z = np.random.uniform(-1, 1, (batch_size, 100))
             y = [1]*batch_size
             g_loss = wgan.train_on_batch(z, y)
@@ -131,13 +136,13 @@ def train():
             print('epoch:{}, batch:{}, g_loss:{}, d_loss:{}'\
                   .format(epoch, batch, g_loss, d_loss))
 
-            checkpoint = np.array([int(num_batches*(i/20)) for i in range(20)])
-            if batch in checkpoint:
+            
+            if batch%100 == 0:
                 sample = combine_images(x_fake)
                 sample = sample*127.5 + 127.5
 
                 Image.fromarray(sample.astype(np.uint8))\
-                     .save(args.sampledir + '/sample{}_{}.png'.format(epoch, batch))
+                     .save(args.sampledir + '/sample_{}_{}.png'.format(epoch, batch))
 
         gen.save_weights(args.weightdir + '/wgan_g.h5')
         disc.save_weights(args.weightdir + '/wgan_d.h5')

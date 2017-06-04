@@ -59,7 +59,7 @@ def discriminator(image_size = 64):
     x = LeakyReLU(0.2)(x)
     x = Dropout(0.5)(x)
     x = Dense(1)(x)
-    outputs = Activation('tanh')(x)
+    outputs = Activation('linear')(x)
 
     model = Model(inputs = images, outputs = outputs)
 
