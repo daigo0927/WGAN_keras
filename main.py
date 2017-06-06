@@ -68,7 +68,7 @@ print('epochs : {}, lr_g : {}, lr_d : {}\n'.format(args.epochs, args.lr_g, args.
 # -> minimize -f(g(z))/N
 def wasserstein(y_true, y_pred): # y = 1:true, -1:fake
 
-    return -K.mean(y_true * y_pred)
+    return -K.mean(y_true * y_pred, axis = -1)
         
 def train():
 
