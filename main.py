@@ -130,7 +130,9 @@ def train():
                 d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
 
-                x_true = np.random.choice(data, batch_size, replace = False)
+                x_true = data[np.random.choice(len(data),
+                                               batch_size,
+                                               replace = False)]
                 z = np.random.uniform(-1, 1, (batch_size, 100))
                 x_fake = gen.predict(z) # fake images
                 x = np.concatenate((x_true, x_fake))
