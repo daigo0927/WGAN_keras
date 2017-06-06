@@ -23,10 +23,10 @@ parser = argparse.ArgumentParser()
 # optimization
 parser.add_argument('-e', '--epochs', type=int, default=20,
                     help = 'number of epochs [20]')
-parser.add_argument('--lr_g', type = float, default = 1e-5,
-                    help = 'learning rate for generator [1e-5]')
-parser.add_argument('--lr_d', type = float, default = 2e-4,
-                    help = 'learning rate for discriminator [2e-4]')
+parser.add_argument('--lr_g', type = float, default = 5e-5,
+                    help = 'learning rate for generator [5e-5]')
+parser.add_argument('--lr_d', type = float, default = 5e-5,
+                    help = 'learning rate for discriminator [5e-5]')
 parser.add_argument('--train_size', type = int, default = np.inf,
                     help = 'size of trainind data [np.inf]')
 parser.add_argument('--batch_size', type = int, default = 64,
@@ -40,6 +40,8 @@ parser.add_argument('--image_size', type = int, default = 64,
                     help = 'size of generated image [64]')
 parser.add_argument('--datadir', type = str, nargs = '+', required = True,
                     help = 'path to directory contains training (image) data')
+parser.add_argument('--splitload', type = int, default = 5,
+                    help = 'load data, by [5] split')
 parser.add_argument('--loadweight', type = str, default = False,
                     help = 'path to directory conrtains trained weights [False]')
 parser.add_argument('--weightdir', type = str, default = './model',
@@ -53,6 +55,7 @@ print('epochs : {}, lr_g : {}, lr_d : {}\n'.format(args.epochs, args.lr_g, args.
       .format(args.train_size, args.batch_size, args.nd),
       'target size : {}, image size : {}\n'.format(args.image_target, args.image_size),
       'data dir : {}\n,'.format(args.datadir),
+      'load data splitingly : {}\n'.format(args.splitload),
       'weight flag : {}, weight dir : {}, sample dir : {}'\
       .format(args.loadweight, args.weightdir, args.sampledir))
 
@@ -112,21 +115,28 @@ def train():
         
         for batch in range(num_batches):
 
+            # load data splitingly
+            if batch in np.linspace(0, num_batches, args.splitload+1, dtype = int):
+                path_split = np.random.choice(paths,
+                                              int(len(paths)/args.splitload),
+                                              replace = False)
+                data = np.array([get_image(p,
+                                           args.image_target,
+                                           args.image_size)\
+                                 for p in path_split])
+
             # train discriminator
             for _ in range(args.nd):
                 d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
 
-                files = np.random.choice(paths, batch_size, replace = False)
-                x_true = np.array([get_image(f, args.image_target, args.image_size)\
-                                   for f in files]) # true images
+                x_true = np.random.choice(data, batch_size, replace = False)
                 z = np.random.uniform(-1, 1, (batch_size, 100))
                 x_fake = gen.predict(z) # fake images
                 x = np.concatenate((x_true, x_fake))
                 y = [1]*batch_size + [-1]*batch_size
 
                 d_loss = disc.train_on_batch(x, y)
-                # pdb.set_trace()
 
             # train generator
             z = np.random.uniform(-1, 1, (batch_size, 100))
