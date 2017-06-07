@@ -129,16 +129,17 @@ def train():
             for _ in range(args.nd):
                 d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
-
+                # train by true image
                 x_true = data[np.random.choice(len(data),
                                                batch_size,
                                                replace = False)]
+                d_loss_true = disc.train_on_batch(x_true, [1]*batch_size)
+                # train by fake image
                 z = np.random.uniform(-1, 1, (batch_size, 100))
-                x_fake = gen.predict(z) # fake images
-                x = np.concatenate((x_true, x_fake))
-                y = [1]*batch_size + [-1]*batch_size
+                x_fake = gen.predict(z)
+                d_loss_fake = disc.train_on_batch(x_fake, [-1]*batch_size)
 
-                d_loss = disc.train_on_batch(x, y)
+                d_loss = (d_loss_true + d_loss_fake)/2
 
             # train generator
             z = np.random.uniform(-1, 1, (batch_size, 100))
