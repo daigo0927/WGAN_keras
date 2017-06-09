@@ -60,7 +60,6 @@ print('epochs : {}, lr_g : {}, lr_d : {}\n'.format(args.epochs, args.lr_g, args.
       .format(args.loadweight, args.weightdir, args.sampledir))
 
 
-
 # wasserstein : WGAN objective
 # critic MAXIMIZE (f(x) - f(g(z)))/N
 # -> minimize -(f(x) - f(g(z)))/N
@@ -78,13 +77,9 @@ def train():
     disc.compile(loss = wasserstein, optimizer = d_opt)
 
     # Wasserstein GAN construction
-    gen = generator(image_size = args.image_size)
-    z_in = Input(shape = (100,))
-    x_ = gen(z_in)
     disc.trainable = False
-    y_out = disc(x_)
-    # wgan = Sequential([gen, disc])
-    wgan = Model(inputs = z_in, outputs = y_out)
+    gen = generator(image_size = args.image_size)
+    wgan = Sequential([gen, disc])
     g_opt = RMSprop(lr = args.lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
     wgan.summary()
@@ -125,8 +120,17 @@ def train():
                                            args.image_size)\
                                  for p in path_split])
 
+
             # train discriminator
-            for _ in range(args.nd):
+            # boost discriminator iteration
+            # referred in https://github.com/martinarjovsky/WassersteinGAN
+            if epoch == 0 and batch < 25:
+                nd = 100
+            elif batch%500 > 0 and batch%500 < 10:
+                nd = 100
+            else:
+                nd = args.nd
+            for _ in range(nd):
                 d_weights = [np.clip(w, -0.01, 0.01) for w in disc.get_weights()]
                 disc.set_weights(d_weights)
                 # train by true image
@@ -157,8 +161,8 @@ def train():
                 Image.fromarray(sample.astype(np.uint8))\
                      .save(args.sampledir + '/sample_{}_{}.png'.format(epoch, batch))
 
-        gen.save_weights(args.weightdir + '/wgan_g.h5')
-        disc.save_weights(args.weightdir + '/wgan_d.h5')
+        gen.save_weights(args.weightdir + '/wgan_g_{}epoch.h5'.format(epoch))
+        disc.save_weights(args.weightdir + '/wgan_d_{}epoch.h5'.format(epoch))
 
 if __name__ == '__main__':
 

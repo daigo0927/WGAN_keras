@@ -15,7 +15,8 @@ from keras.layers.pooling import MaxPooling2D, GlobalAveragePooling2D
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import Conv2D, Conv2DTranspose, UpSampling2D
 
-def generator(image_size = 64):
+# ConvTranspose (often called Deconv) ver.
+def generator(image_size = 64): 
 
     L = int(image_size)
 
