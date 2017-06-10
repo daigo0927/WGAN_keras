@@ -16,7 +16,7 @@ from keras.optimizers import RMSprop
 from keras.layers import Input
 import keras.backend as K
 
-from model import generator, discriminator
+from model import *
 from misc.utils import *
 
 parser = argparse.ArgumentParser()
@@ -33,6 +33,9 @@ parser.add_argument('--batch_size', type = int, default = 64,
                     help = 'size of mini-batch [64]')
 parser.add_argument('--nd', type = int, default = 5,
                     help = 'training schedule for dicriminator by generator [5]')
+parser.add_argument('--generator', type = str, default = 'deconv',
+                    choices = ['deconv', 'upsampling'],
+                    help = 'choose generator type [deconv]')
 # data {/O
 parser.add_argument('--image_target', type = int, default = 108,
                     help = 'target area of training data [108]')
@@ -53,6 +56,7 @@ args = parser.parse_args()
 print('epochs : {}, lr_g : {}, lr_d : {}\n'.format(args.epochs, args.lr_g, args.lr_d),
       'train size : {}, batch size : {}, disc-schedule : {}\n'\
       .format(args.train_size, args.batch_size, args.nd),
+      'generator type : {},'.format(args.generator),
       'target size : {}, image size : {}\n'.format(args.image_target, args.image_size),
       'data dir : {}\n,'.format(args.datadir),
       'load data splitingly : {}\n'.format(args.splitload),
@@ -78,7 +82,10 @@ def train():
 
     # Wasserstein GAN construction
     disc.trainable = False
-    gen = generator(image_size = args.image_size)
+    if args.generator == 'deconv':
+        gen = generator_deconv(image_size = args.image_size)
+    elif args.generator == 'upsampling':
+        gen = generator_upsampling(image_size = args.image_size)
     wgan = Sequential([gen, disc])
     g_opt = RMSprop(lr = args.lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
