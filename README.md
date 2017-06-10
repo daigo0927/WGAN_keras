@@ -1,2 +1,4 @@
 # WGAN keras
 Wasserstein GAN implementation with keras
+DeconvとUpSamplingの二つのネットワークを書きましたがUpSamplingはうまく学習できません．
+Deconvはそこそこうまく画像を学習してくれますが10エポック過ぎあたりからおかしくなります．なぜ，，，
