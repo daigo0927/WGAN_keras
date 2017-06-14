@@ -86,6 +86,7 @@ def train():
         gen = generator_deconv(image_size = args.image_size)
     elif args.generator == 'upsampling':
         gen = generator_upsampling(image_size = args.image_size)
+        print('warning! upsampling genearator usually fail to learn, sorry...')
     wgan = Sequential([gen, disc])
     g_opt = RMSprop(lr = args.lr_g)
     wgan.compile(loss = wasserstein, optimizer = g_opt)
